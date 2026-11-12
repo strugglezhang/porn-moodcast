@@ -1,0 +1,9 @@
+/target/
+/web/node_modules/
+/web/dist/
+/web/*.tsbuildinfo
+/data/
+.env
+.DS_Store
+*.log
+.idea
