@@ -1849,6 +1849,14 @@ textarea:disabled {
   min-height: 180px;
   max-height: none;
 }
+@media (max-width: 900px) {
+  .journal-grid {
+    grid-template-columns: 1fr;
+  }
+  .journal-card textarea {
+    flex: none;
+  }
+}
 @media (max-width: 760px) {
   .brand-icon {
     width: 40px;

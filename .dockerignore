@@ -5,3 +5,7 @@ web/dist
 data
 *.log
 .env
+.env.*
+.idea
+.vscode
+docs

@@ -13,6 +13,7 @@ use sqlx::{
 };
 use std::{path::PathBuf, str::FromStr, time::Duration};
 use tower_http::services::{ServeDir, ServeFile};
+mod music;
 
 const WEATHER_TYPES: &[&str] = &[
     "sunny", "cloudy", "fog", "rain", "storm", "snow", "wind", "downpour", "hail", "rainbow",
@@ -181,7 +182,7 @@ async fn import_records(
     ))
 }
 
-fn app(pool: SqlitePool, web_dir: PathBuf) -> Router {
+fn app(pool: SqlitePool, web_dir: PathBuf, music_dir: PathBuf) -> Router {
     let api = Router::new()
         .route(
             "/health",
@@ -198,7 +199,8 @@ fn app(pool: SqlitePool, web_dir: PathBuf) -> Router {
             )
         })
         .layer(DefaultBodyLimit::max(5 * 1024 * 1024))
-        .with_state(pool);
+        .with_state(pool.clone())
+        .merge(music::router(pool, music_dir));
     Router::new().nest("/api", api).fallback_service(
         ServeDir::new(&web_dir).not_found_service(ServeFile::new(web_dir.join("index.html"))),
     )
@@ -230,8 +232,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map(PathBuf::from)
         .unwrap_or_else(|_| root.join("web/dist"));
     let listener = tokio::net::TcpListener::bind(&address).await?;
+    let music_dir = std::env::var("MUSIC_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| root.join("data/music"));
     println!("Moodcast · http://{address}");
-    axum::serve(listener, app(pool.clone(), web_dir))
+    axum::serve(listener, app(pool.clone(), web_dir, music_dir))
         .with_graceful_shutdown(async {
             let _ = tokio::signal::ctrl_c().await;
         })
@@ -254,7 +259,11 @@ mod tests {
             .await
             .unwrap();
         sqlx::migrate!("./migrations").run(&pool).await.unwrap();
-        app(pool, PathBuf::from("nonexistent"))
+        app(
+            pool,
+            PathBuf::from("nonexistent"),
+            PathBuf::from("nonexistent-music"),
+        )
     }
 
     async fn request(
@@ -496,5 +505,51 @@ mod tests {
             .execute(&pool)
             .await
             .is_err());
+    }
+
+    #[tokio::test]
+    async fn music_upload_has_its_own_limit_in_the_main_router() {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::migrate!("./migrations").run(&pool).await.unwrap();
+        let directory = std::env::temp_dir().join(format!(
+            "moodcast-main-music-{}-{}",
+            std::process::id(),
+            chrono::Utc::now().timestamp_nanos_opt().unwrap()
+        ));
+        let app = app(pool, PathBuf::from("nonexistent"), directory.clone());
+        let mut body = vec![0u8; 6 * 1024 * 1024];
+        body[..4].copy_from_slice(&[0xff, 0xfb, 0x90, 0]);
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/music?name=large.mp3")
+                    .header("content-type", "audio/mpeg")
+                    .body(Body::from(body))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::CREATED);
+        let track: serde_json::Value =
+            serde_json::from_slice(&response.into_body().collect().await.unwrap().to_bytes())
+                .unwrap();
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("DELETE")
+                    .uri(format!("/api/music/{}", track["id"]))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::NO_CONTENT);
+        tokio::fs::remove_dir(directory).await.unwrap();
     }
 }

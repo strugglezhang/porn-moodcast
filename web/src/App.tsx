@@ -32,6 +32,7 @@ import {
 } from "./weather";
 import Sky from "./Sky";
 import WeatherIcon from "./WeatherIcon";
+import MusicPlayer from "./MusicPlayer";
 
 type Notice = { message: string; error?: boolean } | null;
 
@@ -475,6 +476,8 @@ export default function App() {
               ))}
             </div>
           </section>
+
+          <MusicPlayer />
 
           {loadError && (
             <div className="connection-error" role="alert">
