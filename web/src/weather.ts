@@ -13,6 +13,23 @@ export const weatherTypes = [
   "tornado",
 ] as const;
 export type Weather = (typeof weatherTypes)[number];
+
+// Each recorded day keeps its own weather color, regardless of the current sky.
+export const calendarColors: Record<Weather, { light: string; dark: string }> =
+  {
+    sunny: { light: "#b67916", dark: "#ffd279" },
+    cloudy: { light: "#5b788c", dark: "#bdcfdf" },
+    fog: { light: "#806798", dark: "#d0bde9" },
+    rain: { light: "#2879ad", dark: "#82c9f1" },
+    storm: { light: "#8056b3", dark: "#c4a0f5" },
+    snow: { light: "#438ca3", dark: "#b7e8f3" },
+    wind: { light: "#328478", dark: "#93d9c7" },
+    downpour: { light: "#335fb1", dark: "#93b7ff" },
+    hail: { light: "#6874a9", dark: "#bbc6fa" },
+    rainbow: { light: "#b35c83", dark: "#f5add0" },
+    typhoon: { light: "#247b85", dark: "#7fdbda" },
+    tornado: { light: "#976586", dark: "#e8acd2" },
+  };
 export const weatherInfo: Record<
   Weather,
   {

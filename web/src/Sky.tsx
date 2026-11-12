@@ -1,6 +1,24 @@
 import { useEffect, useRef, type CSSProperties } from "react";
 import type { Weather } from "./weather";
 
+type ParticleSettings = {
+  kind: "rain" | "snow" | "hail" | "wind" | "dust";
+  count: number;
+  speed: number;
+  slant: number;
+  length: number;
+};
+const particleSettings: Partial<Record<Weather, ParticleSettings>> = {
+  rain: { kind: "rain", count: 190, speed: 0.8, slant: 5, length: 23 },
+  storm: { kind: "rain", count: 300, speed: 0.8, slant: 12, length: 36 },
+  snow: { kind: "snow", count: 110, speed: 0.13, slant: 0, length: 0 },
+  downpour: { kind: "rain", count: 480, speed: 1.5, slant: 9, length: 46 },
+  typhoon: { kind: "rain", count: 360, speed: 1.15, slant: 86, length: 32 },
+  hail: { kind: "hail", count: 130, speed: 0.95, slant: 10, length: 0 },
+  wind: { kind: "wind", count: 45, speed: 0.55, slant: 0, length: 90 },
+  tornado: { kind: "dust", count: 120, speed: 0.3, slant: 0, length: 0 },
+};
+
 export default function Sky({
   weather,
   still,
@@ -11,47 +29,7 @@ export default function Sky({
   const canvas = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const node = canvas.current;
-    const settings:
-      | {
-          kind: string;
-          count: number;
-          speed: number;
-          slant: number;
-          length: number;
-        }
-      | undefined = (
-      {
-        rain: { kind: "rain", count: 190, speed: 0.8, slant: 5, length: 23 },
-        storm: { kind: "rain", count: 300, speed: 0.8, slant: 12, length: 36 },
-        snow: { kind: "snow", count: 110, speed: 0.13, slant: 0, length: 0 },
-        downpour: {
-          kind: "rain",
-          count: 480,
-          speed: 1.5,
-          slant: 9,
-          length: 46,
-        },
-        typhoon: {
-          kind: "rain",
-          count: 360,
-          speed: 1.15,
-          slant: 86,
-          length: 32,
-        },
-        hail: { kind: "hail", count: 130, speed: 0.95, slant: 10, length: 0 },
-        wind: { kind: "wind", count: 45, speed: 0.55, slant: 0, length: 90 },
-        tornado: { kind: "dust", count: 120, speed: 0.3, slant: 0, length: 0 },
-      } as Record<
-        string,
-        {
-          kind: string;
-          count: number;
-          speed: number;
-          slant: number;
-          length: number;
-        }
-      >
-    )[weather];
+    const settings = particleSettings[weather];
     if (!node || !settings) return;
     const ctx = node.getContext("2d");
     if (!ctx) return;
@@ -80,14 +58,19 @@ export default function Sky({
         ctx.beginPath();
         if (settings.kind === "dust") {
           const angle = time * 0.002 * (1 + p.speed) + p.phase;
-          const radius = (1 - p.y) * Math.min(width * 0.15, 175) + 10;
+          const funnelWidth = width <= 480 ? 190 : width <= 760 ? 260 : 350;
+          const radius = (1 - p.y) * funnelWidth * 0.5 + 5;
           const x =
             width * 0.76 +
             Math.cos(angle) * radius +
             Math.sin(p.y * 5 + time * 0.0005) * 20;
           const y =
-            height * 0.17 +
-            p.y * Math.min(height * 0.53, 460) +
+            height * (width <= 760 ? 0.13 : 0.12) +
+            p.y *
+              Math.min(
+                height * (width <= 480 ? 0.32 : width <= 760 ? 0.38 : 0.53),
+                460,
+              ) +
             Math.sin(angle) * 12;
           ctx.ellipse(
             x,

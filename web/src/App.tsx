@@ -13,7 +13,6 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  CloudSun,
   LoaderCircle,
   Pause,
   Play,
@@ -28,6 +27,7 @@ import {
   shiftMonth,
   weatherInfo,
   weatherTypes,
+  calendarColors,
   type Weather,
 } from "./weather";
 import Sky from "./Sky";
@@ -320,9 +320,9 @@ export default function App() {
             }}
           >
             <span className="brand-icon">
-              <CloudSun size={25} strokeWidth={1.4} />
+              <img src="/logo.svg" width="46" height="46" alt="" />
             </span>
-            <span>
+            <span className="brand-wordmark">
               moodcast<span className="brand-dot">.</span>
             </span>
             <span className="brand-sub">心情天气</span>
@@ -694,16 +694,31 @@ export default function App() {
                       style={
                         record
                           ? ({
-                              "--day-color": weatherInfo[record.weather].color,
+                              "--day-color":
+                                calendarColors[record.weather].light,
+                              "--day-color-dark":
+                                calendarColors[record.weather].dark,
                             } as React.CSSProperties)
                           : undefined
                       }
                     >
-                      <span>{day}</span>
+                      <span className="calendar-date">{day}</span>
                       {record ? (
-                        <WeatherIcon weather={record.weather} size={19} />
+                        <>
+                          <span className="calendar-weather" aria-hidden="true">
+                            <WeatherIcon weather={record.weather} size={32} />
+                          </span>
+                          <span
+                            className="calendar-weather-name"
+                            aria-hidden="true"
+                          >
+                            {weatherInfo[record.weather].name}
+                          </span>
+                        </>
                       ) : (
-                        <i />
+                        <span className="calendar-empty" aria-hidden="true">
+                          —
+                        </span>
                       )}
                     </button>
                   );
@@ -713,8 +728,17 @@ export default function App() {
                 <span>
                   {recordedTypes.length
                     ? recordedTypes.map((type) => (
-                        <span key={type} className="legend-item">
-                          <i style={{ background: weatherInfo[type].color }} />
+                        <span
+                          key={type}
+                          className="legend-item"
+                          style={
+                            {
+                              "--day-color": calendarColors[type].light,
+                              "--day-color-dark": calendarColors[type].dark,
+                            } as React.CSSProperties
+                          }
+                        >
+                          <WeatherIcon weather={type} size={14} />
                           {weatherInfo[type].name}
                         </span>
                       ))
@@ -739,7 +763,8 @@ export default function App() {
         </main>
 
         <footer className="footer shell">
-          <span>
+          <span className="footer-brand">
+            <img src="/logo.svg" width="24" height="24" alt="" />
             moodcast<span className="brand-dot">.</span>
             <span className="footer-tagline">为心情，留一片天空。</span>
           </span>
