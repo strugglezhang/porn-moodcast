@@ -1,7 +1,7 @@
 ARG RUNTIME_BASE=zhangchaobab/niuzios
-ARG TARGETARCH
+ARG TARGETARCH=arm64
 
-FROM --platform=$BUILDPLATFORM node:22-bookworm-slim AS web
+FROM node:22-bookworm-slim AS web
 WORKDIR /build/web
 COPY web/package*.json ./
 RUN npm ci
@@ -16,8 +16,7 @@ WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY .cargo/ .cargo/
 COPY server/ server/
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    case "$TARGETARCH" in \
+RUN case "$TARGETARCH" in \
       amd64) RUST_TARGET=x86_64-unknown-linux-musl ;; \
       arm64) RUST_TARGET=aarch64-unknown-linux-musl ;; \
       *) echo "Unsupported architecture: $TARGETARCH"; exit 1 ;; \

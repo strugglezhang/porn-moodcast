@@ -85,18 +85,21 @@ docker run -d --name moodcast -p 8080:3000 -v moodcast-data:/app/data zhangchaob
 
 打开 <http://127.0.0.1:8080>。`latest` 和日期标签用于多架构镜像，另提供 `amd64`、`arm64` 架构标签。
 
-本地构建：
+直接构建 ARM64 镜像：
 
 ```sh
-docker build -t moodcast .
+DOCKER_BUILDKIT=0 docker build --platform linux/arm64 -t moodcast .
 docker run --name moodcast -p 127.0.0.1:3000:3000 -v moodcast-data:/app/data moodcast
 ```
 
-使用支持多架构的 Buildx 构建器发布：
+推送 ARM64 镜像：
 
 ```sh
-docker buildx build --platform linux/amd64,linux/arm64 -t zhangchaobab/porn-moodcast:latest --push .
+docker tag moodcast zhangchaobab/porn-moodcast:arm64
+docker push zhangchaobab/porn-moodcast:arm64
 ```
+
+`DOCKER_BUILDKIT=0` 用于直接使用传统 `docker build`。Dockerfile 默认 `TARGETARCH=arm64`；如需构建 AMD64，使用 `--platform linux/amd64 --build-arg TARGETARCH=amd64`。
 
 整个 `/app/data` 目录需要持久化，包含数据库及 WAL 文件。运行中的备份请优先使用页面导出；拷贝数据库文件应在服务关闭后进行。
 
